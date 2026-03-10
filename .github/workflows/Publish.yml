@@ -5,6 +5,15 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      prerelease:
+        description: 'Mark as prerelease?'
+        type: boolean
+        default: true
+      draft:
+        description: 'Create as draft release?'
+        type: boolean
+        default: false
 
 env:
   REPO_NAME: hitomi-downloader
@@ -14,8 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       VERSION: ${{ steps.get_version.outputs.VERSION }}
+      TAG_NAME: ${{ steps.get_tag_name.outputs.TAG_NAME }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get version number
         id: get_version
@@ -23,12 +35,26 @@ jobs:
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Generate tag name
+        id: get_tag_name
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # For manual trigger, use nightly tag with timestamp
+            TAG_NAME="nightly-$(date +%Y%m%d-%H%M%S)"
+          else
+            # For tag push, use the tag name
+            TAG_NAME="${{ github.ref_name }}"
+          fi
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+
   windows-build:
     needs: get-version
     env:
       VERSION: ${{ needs.get-version.outputs.VERSION }}
+      TAG_NAME: ${{ needs.get-version.outputs.TAG_NAME }}
     outputs:
       VERSION: ${{ env.VERSION }}
+      TAG_NAME: ${{ env.TAG_NAME }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,8 +99,10 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{ needs.get-version.outputs.VERSION }}
+      TAG_NAME: ${{ needs.get-version.outputs.TAG_NAME }}
     outputs:
       VERSION: ${{ env.VERSION }}
+      TAG_NAME: ${{ env.TAG_NAME }}
     runs-on: ubuntu-24.04
     steps:
       - name: install dependencies
@@ -126,8 +154,10 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{ needs.get-version.outputs.VERSION }}
+      TAG_NAME: ${{ needs.get-version.outputs.TAG_NAME }}
     outputs:
       VERSION: ${{ env.VERSION }}
+      TAG_NAME: ${{ env.TAG_NAME }}
     strategy:
       fail-fast: false
       matrix:
@@ -212,13 +242,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Desktop App v${{ needs.windows-build.outputs.VERSION }}
+          tag_name: ${{ needs.windows-build.outputs.TAG_NAME }}
+          name: Desktop App v${{ needs.windows-build.outputs.VERSION }}${{ github.event_name == 'workflow_dispatch' && ' (Nightly)' || '' }}
           body: |
             Take a look at the assets to download and install this app.
+            
+            ${{ github.event_name == 'workflow_dispatch' && '**Note:** This is a nightly build from the main branch.' || '' }}
           files: |
             artifacts/windows/*
             artifacts/linux/*
             artifacts/macos-aarch64/*
             artifacts/macos-x86_64/*
-          draft: true
-          prerelease: false
+          draft: ${{ github.event.inputs.draft || 'false' }}
+          prerelease: ${{ github.event.inputs.prerelease || 'true' }}
