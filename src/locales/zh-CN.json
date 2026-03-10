@@ -52,6 +52,7 @@
     "no_proxy": "直连",
     "custom_proxy": "自定义",
     "open_config_directory": "打开配置目录",
+    "auto_export_cbz": "下载完成后自动导出 CBZ",
     "directory_format": {
       "name": "文件夹格式",
       "directory_level_tips": "可以用斜杠 {slash} 来划分目录层级",

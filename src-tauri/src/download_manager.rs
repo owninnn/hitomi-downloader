@@ -23,6 +23,7 @@ use tokio::{
 use crate::{
     config::Config,
     events::{DownloadSpeedEvent, DownloadTaskEvent},
+    export,
     extensions::AnyhowErrorToStringChain,
     hitomi::{image_url_from_image, Ext},
     hitomi_client::HitomiClient,
@@ -303,6 +304,22 @@ impl DownloadTask {
             return;
         }
         tracing::info!(id, comic_title, "Comic download successfully");
+
+        // Auto export CBZ if enabled
+        let auto_export_cbz = self
+            .app
+            .state::<RwLock<Config>>()
+            .read()
+            .auto_export_cbz;
+        if auto_export_cbz {
+            if let Err(err) = export::cbz(&self.app, &self.comic) {
+                let err_title = format!("Failed to auto export CBZ of `{comic_title}`");
+                let string_chain = err.to_string_chain();
+                tracing::error!(err_title, message = string_chain);
+            } else {
+                tracing::info!(id, comic_title, "CBZ exported successfully");
+            }
+        }
 
         self.set_state(DownloadTaskState::Completed);
         self.emit_download_task_update_event();

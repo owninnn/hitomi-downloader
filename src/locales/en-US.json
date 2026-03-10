@@ -52,6 +52,7 @@
     "no_proxy": "No Proxy",
     "custom_proxy": "Custom",
     "open_config_directory": "Open Config Folder",
+    "auto_export_cbz": "Auto Export CBZ after download",
     "directory_format": {
       "name": "Folder Format",
       "directory_level_tips": "Use the forward slash {slash} to separate directory levels",

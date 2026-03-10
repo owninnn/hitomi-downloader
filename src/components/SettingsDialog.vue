@@ -31,6 +31,9 @@ async function showConfigInFileManager() {
   <n-modal v-model:show="showing" v-if="store.config !== undefined">
     <n-dialog :showIcon="false" :title="t('settings_dialog.name')" @close="showing = false">
       <div class="flex flex-col gap-row-2">
+        <n-checkbox v-model:checked="store.config.autoExportCbz">
+          {{ t('settings_dialog.auto_export_cbz') }}
+        </n-checkbox>
         <n-radio-group class="flex gap-2" v-model:value="store.config.downloadFormat">
           <span>{{ t('settings_dialog.download_format') }}</span>
           <n-radio value="Webp">webp</n-radio>
